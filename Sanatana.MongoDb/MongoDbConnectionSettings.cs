@@ -15,9 +15,5 @@ namespace Sanatana.MongoDb
         public string DatabaseName { get; set; }
         public string CollectionsPrefix { get; set; }
         public MongoCredential Credential { get; set; }
-
-
-
-
     }
 }

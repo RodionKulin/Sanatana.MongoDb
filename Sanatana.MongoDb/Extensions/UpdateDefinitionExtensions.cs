@@ -133,21 +133,20 @@ namespace Sanatana.MongoDb
             foreach (PropertyInfo prop in itemProps)
             {
                 bool memberMapped = classMaps.Any(p => p.GetMemberMap(prop.Name) != null);
-                
                 if (memberMapped)
                 {
                     mappedMembers.Add(prop);
                 }
             }
-            
+
             _mappedProperties[itemType] = mappedMembers;
             return mappedMembers;
         }
 
         public static BsonDocument Render<TDocument>(this UpdateDefinition<TDocument> update)
         {
-            return update.Render(BsonSerializer.LookupSerializer<TDocument>()
-                , BsonSerializer.SerializerRegistry);
+            return (BsonDocument)update.Render(
+                BsonSerializer.LookupSerializer<TDocument>(), BsonSerializer.SerializerRegistry);
         }
     }
 }

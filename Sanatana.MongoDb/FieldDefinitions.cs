@@ -12,7 +12,7 @@ namespace Sanatana.MongoDb
     public static class FieldDefinitions
     {
         public static FieldDefinition<TDocument> CreateField<TDocument, TItem>(
-            Expression<Func<TDocument, IEnumerable<TItem>>> field, TItem value)
+            Expression<Func<TDocument, IEnumerable<TItem>>> field)
         {
             return new ExpressionFieldDefinition<TDocument>(field);
         }
@@ -32,9 +32,8 @@ namespace Sanatana.MongoDb
         public static string GetFieldMappedName<TDocument>(
            FieldDefinition<TDocument> fieldDefinition)
         {
-            RenderedFieldDefinition renderDefinition = fieldDefinition
-                .Render(BsonSerializer.LookupSerializer<TDocument>()
-                , BsonSerializer.SerializerRegistry);
+            RenderedFieldDefinition renderDefinition = fieldDefinition.Render(
+                BsonSerializer.LookupSerializer<TDocument>(), BsonSerializer.SerializerRegistry);
             return renderDefinition.FieldName;
         }
 

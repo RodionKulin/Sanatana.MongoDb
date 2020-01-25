@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Sanatana.MongoDb</name>
+    </assembly>
+    <members>
+        <member name="M:Sanatana.MongoDb.Repository.MongoDbRepository`1.FindMany(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},System.Int32,System.Int32,System.Boolean,System.Linq.Expressions.Expression{System.Func{`0,System.Object}},System.Threading.CancellationToken)">
+            <summary>
+            Select multiple items for specified page using a filter.
+            </summary>
+            <param name="filterConditions">Filtering expression</param>
+            <param name="pageIndex">0-based page index</param>
+            <param name="pageSize">Number of items on page. Should be greater than 0.</param>
+            <param name="orderDescending">Order direction</param>
+            <param name="orderExpression">Property expression that will be sorted by</param>
+            <param name="token">Cancellation token</param>
+            <returns></returns>
+        </member>
+    </members>
+</doc>

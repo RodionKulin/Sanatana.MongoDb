@@ -6,6 +6,7 @@ using MongoDB.Driver.Core.Bindings;
 using MongoDB.Driver.Core.Clusters;
 using MongoDB.Driver.Core.Operations;
 using MongoDB.Driver.Core.WireProtocol.Messages.Encoders;
+using Sanatana.MongoDb.Validators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,29 +17,8 @@ using System.Threading.Tasks;
 
 namespace Sanatana.MongoDb
 {
-    public static class IMongoCollectionExtensions
+    public static class IMongoDbCollectionExtensions
     {
-        //query
-        public static void InsertIfNotExists<TDocument>(
-            IMongoCollection<TDocument> collection, TDocument item)
-        {
-            try
-            {
-                collection.InsertOneAsync(item).Wait();
-            }
-            catch (Exception exception)
-            {
-                bool isDuplicate = MongoDbUtility.IsDuplicateException(exception);
-
-                if (!isDuplicate)
-                {
-                    throw exception;
-                }
-            }
-        }
-
-
-
         //query analyze
         public static Task<BsonDocument> ExplainAggregation<TDocument, TResult>(
             this IMongoCollection<TDocument> collection
@@ -77,6 +57,17 @@ namespace Sanatana.MongoDb
             var renderedDefinition = pipeline.Render(serializer, serializerRegistry);
 
             return renderedDefinition.Documents.ToList();
+        }
+
+        public static Func<object, object> GetIdFieldGetter<TDocument>(this IMongoCollection<TDocument> collection, Type itemType)
+        {
+            BsonClassMap classMap = BsonClassMap.LookupClassMap(itemType);
+            Func<object, object> idGetter = classMap?.IdMemberMap?.Getter;
+            if (idGetter == null)
+            {
+                throw new NullReferenceException($"Getter for MongoDb _id field not found for type {itemType.Name}");
+            }
+            return idGetter;
         }
 
 

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Sanatana.MongoDb.Validators;
 
 namespace Sanatana.MongoDb.Identity
 {
@@ -25,7 +26,7 @@ namespace Sanatana.MongoDb.Identity
         //methods
         public virtual async Task<List<TUser>> SelectPage(int page, int pageSize)
         {
-            int skip = MongoDbUtility.ToSkipNumber(page, pageSize);
+            int skip = PageNumbersValidation.ToSkipNumber(page, pageSize);
 
             FilterDefinition<TUser> filter = Builders<TUser>.Filter.Where(p => true);
 

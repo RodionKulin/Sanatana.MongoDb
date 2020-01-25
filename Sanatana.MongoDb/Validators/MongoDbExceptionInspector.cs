@@ -4,20 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Sanatana.MongoDb
+namespace Sanatana.MongoDb.Validators
 {
-    public class MongoDbUtility
+    public class MongoDbExceptionInspector
     {
-        public static int ToSkipNumber(int page, int pageSize)
-        {
-            if (pageSize < 1)
-                throw new Exception("Number of items per page must be greater then 0.");
-
-            if (page < 1)
-                page = 1;
-
-            return (page - 1) * pageSize;
-        }
+       
 
         public static bool IsDuplicateException(Exception exception, string fieldName = null)
         {
