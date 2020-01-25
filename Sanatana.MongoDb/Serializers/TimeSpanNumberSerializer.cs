@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Sanatana.MongoDb
 {
-    public class TimeSpanNumberSerializer : IBsonSerializer
+    public class TimeSpanNumberSerializer : IBsonSerializer<TimeSpan>
     {
         //properties
         public Type ValueType
@@ -15,8 +15,21 @@ namespace Sanatana.MongoDb
             get { return typeof(TimeSpan); }
         }
 
+
         //methods
-        public object Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
+        public void Serialize(BsonSerializationContext context, BsonSerializationArgs args, TimeSpan value)
+        {
+            long timestamp = (long)value.TotalMilliseconds;
+            context.Writer.WriteInt64(timestamp);
+        }
+        
+        public void Serialize(BsonSerializationContext context, BsonSerializationArgs args, object value)
+        {
+            TimeSpan timeSpanValue = (TimeSpan)value;
+            Serialize(context, args, timeSpanValue);
+        }
+
+        public TimeSpan Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
         {
             long timestamp = 0;
             if (context.Reader.CurrentBsonType == MongoDB.Bson.BsonType.Int32)
@@ -30,17 +43,16 @@ namespace Sanatana.MongoDb
             else
             {
                 string message = string.Format("Unknown timestamp bson type {0}", context.Reader.CurrentBsonType);
-                throw new Exception(message);
+                throw new FormatException(message);
             }
-                       
+
             return TimeSpan.FromMilliseconds(timestamp);
         }
 
-        public void Serialize(BsonSerializationContext context, BsonSerializationArgs args, object value)
+        object IBsonSerializer.Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
         {
-            TimeSpan timeSpanValue = (TimeSpan)value;
-            long timestamp = (long)timeSpanValue.TotalMilliseconds;
-            context.Writer.WriteInt64(timestamp);
+            return Deserialize(context, args);
         }
+
     }
 }

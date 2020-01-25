@@ -147,7 +147,7 @@ namespace Sanatana.MongoDb.Repository
                 }
             }
 
-            int skipItems = PageNumbersValidation.ToSkipNumber(pageIndex, pageSize);
+            int skipItems = MongoDbPageNumbers.ToSkipNumber(pageIndex, pageSize);
             query = query.Skip(skipItems).Limit(pageSize);
 
             return query.ToListAsync(cancellationToken: token);

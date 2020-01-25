@@ -9,7 +9,9 @@ using System.Reflection;
 using System.Collections;
 using Sanatana.MongoDb.Repository.Memory;
 using System.IO;
+using System;
 using System.Runtime.Serialization.Formatters.Binary;
+using MongoDB.Bson.Serialization;
 
 namespace Sanatana.MongoDb.Repository
 {
@@ -137,13 +139,9 @@ namespace Sanatana.MongoDb.Repository
             T returnedEntity = entity;
             if (returnDocument == ReturnDocument.Before)
             {
-                using (var ms = new MemoryStream())
-                {
-                    var formatter = new BinaryFormatter();
-                    formatter.Serialize(ms, entity);
-                    ms.Position = 0;
-                    returnedEntity = (T)formatter.Deserialize(ms);
-                }
+                //Could clone it here if required with AutoMapper or BinarySerializer.
+                //However BinarySerializer does not serialize ObjectId.
+                returnedEntity = entity;
             }
 
             UpdateField(updates, entity, false);

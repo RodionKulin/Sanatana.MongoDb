@@ -10,12 +10,8 @@
 	  <PackageDescription>MongoDb repository and extensions</PackageDescription>
 	  <PackageTags>MongoDb;Repository;Extensions;</PackageTags>
     <PackageReleaseNotes>Repository added</PackageReleaseNotes>
-    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DocumentationFile>D:\dev\Собственное\Библиотеки\Sanatana.MongoDb\Sanatana.MongoDb\Sanatana.MongoDb.xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

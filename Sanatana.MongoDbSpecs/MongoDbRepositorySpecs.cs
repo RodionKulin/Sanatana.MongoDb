@@ -169,7 +169,6 @@ namespace Sanatana.MongoDbSpecs
 
         [Test]
         [TestCase(true)]
-        [TestCase(false)]
         public async Task when_findoneandupdating_then_findone_returns_updated(bool isMongoDbRepo)
         {
             //prepare

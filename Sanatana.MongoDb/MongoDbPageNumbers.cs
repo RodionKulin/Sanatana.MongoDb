@@ -4,8 +4,14 @@ using System.Text;
 
 namespace Sanatana.MongoDb.Validators
 {
-    public static class PageNumbersValidation
+    public static class MongoDbPageNumbers
     {
+        /// <summary>
+        /// Get number of items to skip
+        /// </summary>
+        /// <param name="pageIndex">0-based page index</param>
+        /// <param name="pageSize">number of pages per page</param>
+        /// <returns></returns>
         public static int ToSkipNumber(int pageIndex, int pageSize)
         {
             if (pageSize < 1)

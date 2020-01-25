@@ -24,9 +24,15 @@ namespace Sanatana.MongoDb.Identity
 
 
         //methods
-        public virtual async Task<List<TUser>> SelectPage(int page, int pageSize)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pageIndex">0-based page index</param>
+        /// <param name="pageSize"></param>
+        /// <returns></returns>
+        public virtual async Task<List<TUser>> SelectPage(int pageIndex, int pageSize)
         {
-            int skip = PageNumbersValidation.ToSkipNumber(page, pageSize);
+            int skip = MongoDbPageNumbers.ToSkipNumber(pageIndex, pageSize);
 
             FilterDefinition<TUser> filter = Builders<TUser>.Filter.Where(p => true);
 
