@@ -7,7 +7,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sanatana.MongoDb", "Sanatan
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sanatana.MongoDb.Identity", "Sanatana.MongoDb.Identity\Sanatana.MongoDb.Identity.csproj", "{2F720B4D-242C-4021-9102-FFC2F7E4B4DC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sanatana.MongoDbSpecs", "Sanatana.MongoDbSpecs\Sanatana.MongoDbSpecs.csproj", "{CE0D0449-A002-475B-AA37-28408C37E36F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sanatana.MongoDbSpecs", "Sanatana.MongoDbSpecs\Sanatana.MongoDbSpecs.csproj", "{CE0D0449-A002-475B-AA37-28408C37E36F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution items", "{4A433CB7-4D3A-4064-9551-6DFF975CA3CF}"
+	ProjectSection(SolutionItems) = preProject
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
+		.travis.yml = .travis.yml
+		LICENSE = LICENSE
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
