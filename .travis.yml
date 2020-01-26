@@ -1,6 +1,8 @@
 language: csharp
 mono: none
-dotnet: 2.1.2
+sudo: required
+dist: xenial
+dotnet: 2.2
 solution: Sanatana.MongoDb.sln
 script:
   - dotnet pack Sanatana.MongoDb/Sanatana.MongoDb.csproj -o ../nuget -c Release -v n
