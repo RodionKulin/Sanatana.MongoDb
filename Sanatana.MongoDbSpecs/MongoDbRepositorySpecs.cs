@@ -196,6 +196,73 @@ namespace Sanatana.MongoDbSpecs
         [Test]
         [TestCase(true)]
         [TestCase(false)]
+        public async Task when_findoneandreplacing_then_findone_returns_updated(bool isMongoDbRepo)
+        {
+            //prepare
+            IRepository<Post> repository = GetRepositoryToTest(isMongoDbRepo);
+            var newEntity = new Post
+            {
+                ID = ObjectId.GenerateNewId(),
+                Text = "findoneandreplace",
+                Counter = 1
+            };
+            await repository.InsertOne(newEntity);
+
+            //invoke
+            var replacementEntity = new Post
+            {
+                ID = newEntity.ID,
+                Text = "replaced",
+                Counter = 2
+            };
+            Post beforeUpdateEntity = await repository.FindOneAndReplace(replacementEntity, false, ReturnDocument.Before);
+
+            //assert
+            Post actualEntity = await repository.FindOne(x => x.ID == newEntity.ID);
+            actualEntity.Should().NotBeNull();
+            actualEntity.Text.Should().Be("replaced");
+            actualEntity.Counter.Should().Be(2);
+
+            beforeUpdateEntity.Should().NotBeNull();
+            beforeUpdateEntity.Text.Should().Be("findoneandreplace");
+            beforeUpdateEntity.Counter.Should().Be(1);
+        }
+
+        [Test]
+        [TestCase(true)]
+        public async Task when_findoneandreplacing_with_upsert_then_findone_returns_updated(bool isMongoDbRepo)
+        {
+            //prepare
+            IRepository<Post> repository = GetRepositoryToTest(isMongoDbRepo);
+            var newEntity = new Post
+            {
+                ID = ObjectId.GenerateNewId(),
+                Text = "findoneandreplace",
+                Counter = 1
+            };
+            await repository.InsertOne(newEntity);
+
+            //invoke
+            var replacementEntity = new Post
+            {
+                ID = newEntity.ID,
+                Text = "replaced",
+                Counter = 2
+            };
+            Post updatedEntity = await repository.FindOneAndReplace(replacementEntity, false, ReturnDocument.After);
+
+            //assert
+            Post actualEntity = await repository.FindOne(x => x.ID == newEntity.ID);
+            actualEntity.Should().NotBeNull();
+            actualEntity.Text.Should().Be("replaced");
+            actualEntity.Counter.Should().Be(2);
+
+            updatedEntity.Should().BeEquivalentTo(actualEntity);
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
         public async Task when_updating_many_with_push_then_findmany_returns_updated_results(bool isMongoDbRepo)
         {
             //prepare
@@ -288,7 +355,7 @@ namespace Sanatana.MongoDbSpecs
             newEntities.ForEach(x => x.Text = "upsert many");
 
             //invoke
-            long upsertedCount = await repository.UpsertMany(newEntities);
+            long upsertedCount = await repository.ReplaceMany(newEntities, true);
 
             //assert
             upsertedCount.Should().Be(newEntities.Count);
@@ -320,7 +387,7 @@ namespace Sanatana.MongoDbSpecs
             newEntities.ForEach(x => x.Text = "update many");
 
             //invoke
-            long upsertedCount = await repository.UpdateMany(newEntities);
+            long upsertedCount = await repository.ReplaceMany(newEntities, true);
 
             //assert
             upsertedCount.Should().Be(newEntities.Count);

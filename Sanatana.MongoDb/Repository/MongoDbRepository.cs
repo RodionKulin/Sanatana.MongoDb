@@ -84,11 +84,16 @@ namespace Sanatana.MongoDb.Repository
             return _collection.InsertManyAsync(entities, cancellationToken: token);
         }
 
-        public virtual Task<long> Count(Expression<Func<T, bool>> filterConditions, CancellationToken token = default)
+        public virtual Task<long> CountDocuments(Expression<Func<T, bool>> filterConditions, CancellationToken token = default)
         {
             FilterDefinition<T> filter = ToFilter(filterConditions);
 
             return _collection.CountDocumentsAsync(filter, cancellationToken: token);
+        }
+
+        public virtual Task<long> EstimatedDocumentCount(CancellationToken token = default)
+        {
+            return _collection.EstimatedDocumentCountAsync(cancellationToken: token);
         }
 
         public virtual Task<T> FindOne(Expression<Func<T, bool>> filterConditions, CancellationToken token = default)
@@ -109,6 +114,20 @@ namespace Sanatana.MongoDb.Repository
                 ReturnDocument = returnDocument
             };
             return _collection.FindOneAndUpdateAsync(filter, updateDefinition, options, cancellationToken: token);
+        }
+
+        public virtual Task<T> FindOneAndReplace(T entity, bool isUpsert, ReturnDocument returnDocument = ReturnDocument.Before, CancellationToken token = default)
+        {
+            Func<object, object> idGetter = FieldDefinitions.GetIdFieldGetter(typeof(T));
+            ObjectId entityId = (ObjectId)idGetter.Invoke(entity);
+            var filter = Builders<T>.Filter.Eq("_id", entityId);
+
+            var options = new FindOneAndReplaceOptions<T>
+            {
+                ReturnDocument = returnDocument,
+                IsUpsert = isUpsert
+            };
+            return _collection.FindOneAndReplaceAsync(filter, entity, options, cancellationToken: token);
         }
 
         public virtual Task<T> FindOneAndDelete(Expression<Func<T, bool>> filterConditions, CancellationToken token = default)
@@ -152,18 +171,6 @@ namespace Sanatana.MongoDb.Repository
             return query.ToListAsync(cancellationToken: token);
         }
 
-        public virtual async Task<long> UpdateOne(T entity, CancellationToken token = default)
-        {
-            Func<object, object> idGetter = _collection.GetIdFieldGetter(typeof(T));
-            ObjectId entityId = (ObjectId)idGetter.Invoke(entity);
-            var filter = Builders<T>.Filter.Eq("_id", entityId);
-            
-            UpdateDefinition<T> update = Builders<T>.Update.SetAllMappedMembers(entity);
-            UpdateResult result = await _collection.UpdateOneAsync(filter, update, cancellationToken: token)
-                .ConfigureAwait(false);
-            return result.ModifiedCount;
-        }
-
         public virtual async Task<long> UpdateOne(Expression<Func<T, bool>> filterConditions, Updates<T> updates, CancellationToken token = default)
         {
             var filter = Builders<T>.Filter.Where(filterConditions);
@@ -171,74 +178,6 @@ namespace Sanatana.MongoDb.Repository
             UpdateResult result = await _collection.UpdateOneAsync(filter, update, cancellationToken: token)
                 .ConfigureAwait(false);
             return result.ModifiedCount;
-        }
-
-        public virtual async Task<long> UpsertMany(IEnumerable<T> entities, CancellationToken token = default)
-        {
-            if (entities.Count() == 0)
-            {
-                return 0;
-            }
-
-            var requests = new List<WriteModel<T>>();
-
-            Func<object, object> idGetter = _collection.GetIdFieldGetter(typeof(T));
-            foreach (T entity in entities)
-            {
-                ObjectId entityId = (ObjectId)idGetter.Invoke(entity);
-                var filter = Builders<T>.Filter.Eq("_id", entityId);
-                UpdateDefinition<T> update = Builders<T>.Update.Combine().SetAllMappedMembers(entity);
-                requests.Add(new UpdateOneModel<T>(filter, update)
-                {
-                    IsUpsert = true
-                });
-            }
-
-            // BulkWrite
-            var options = new BulkWriteOptions()
-            {
-                IsOrdered = false
-            };
-
-            BulkWriteResult<T> bulkResult = await _collection
-                .BulkWriteAsync(requests, options, cancellationToken: token)
-                .ConfigureAwait(false);
-
-            return bulkResult.Upserts.Count + bulkResult.ModifiedCount;
-        }
-
-        public virtual async Task<long> UpdateMany(IEnumerable<T> entities, CancellationToken token = default)
-        {
-            if (entities.Count() == 0)
-            {
-                return 0;
-            }
-
-            var requests = new List<WriteModel<T>>();
-
-            Func<object, object> idGetter = _collection.GetIdFieldGetter(typeof(T));
-            foreach (T entity in entities)
-            {
-                ObjectId entityId = (ObjectId)idGetter.Invoke(entity);
-                var filter = Builders<T>.Filter.Eq("_id", entityId);
-                UpdateDefinition<T> update = Builders<T>.Update.Combine().SetAllMappedMembers(entity);
-                requests.Add(new UpdateOneModel<T>(filter, update)
-                {
-                    IsUpsert = false
-                });
-            }
-
-            // BulkWrite
-            var options = new BulkWriteOptions()
-            {
-                IsOrdered = false
-            };
-
-            BulkWriteResult<T> bulkResult = await _collection
-                .BulkWriteAsync(requests, options, cancellationToken: token)
-                .ConfigureAwait(false);
-
-            return bulkResult.Upserts.Count + bulkResult.ModifiedCount;
         }
 
         public virtual async Task<long> UpdateMany(Expression<Func<T, bool>> filterConditions, Updates<T> updates, CancellationToken token = default)
@@ -250,6 +189,54 @@ namespace Sanatana.MongoDb.Repository
                 .UpdateManyAsync(filter, updateDefinition, cancellationToken: token)
                 .ConfigureAwait(false);
             return result.ModifiedCount;
+        }
+
+        public virtual async Task<long> ReplaceOne(T entity, bool isUpsert, CancellationToken token = default)
+        {
+            Func<object, object> idGetter = FieldDefinitions.GetIdFieldGetter(typeof(T));
+            ObjectId entityId = (ObjectId)idGetter.Invoke(entity);
+            var filter = Builders<T>.Filter.Eq("_id", entityId);
+
+            var options = new ReplaceOptions
+            {
+                IsUpsert = isUpsert
+            };
+            ReplaceOneResult result = await _collection.ReplaceOneAsync(filter, entity, options, cancellationToken: token)
+                .ConfigureAwait(false);
+            return result.ModifiedCount;
+        }
+
+        public virtual async Task<long> ReplaceMany(IEnumerable<T> entities, bool isUpsert, CancellationToken token = default)
+        {
+            if (entities.Count() == 0)
+            {
+                return 0;
+            }
+
+            var requests = new List<WriteModel<T>>();
+
+            Func<object, object> idGetter = FieldDefinitions.GetIdFieldGetter(typeof(T));
+            foreach (T entity in entities)
+            {
+                ObjectId entityId = (ObjectId)idGetter.Invoke(entity);
+                var filter = Builders<T>.Filter.Eq("_id", entityId);
+                requests.Add(new ReplaceOneModel<T>(filter, entity)
+                {
+                    IsUpsert = isUpsert
+                });
+            }
+
+            // BulkWrite
+            var options = new BulkWriteOptions()
+            {
+                IsOrdered = false
+            };
+
+            BulkWriteResult<T> bulkResult = await _collection
+                .BulkWriteAsync(requests, options, cancellationToken: token)
+                .ConfigureAwait(false);
+
+            return bulkResult.Upserts.Count + bulkResult.ModifiedCount;
         }
 
         public virtual async Task<long> DeleteOne(Expression<Func<T, bool>> filterConditions, CancellationToken token = default)

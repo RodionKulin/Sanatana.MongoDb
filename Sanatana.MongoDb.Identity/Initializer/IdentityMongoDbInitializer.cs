@@ -22,7 +22,7 @@ namespace Sanatana.MongoDb.Identity
 
 
         //methods
-        public void CreateAllIndexes()
+        public void DropAndCreateAllIndexes()
         {
             CreateUsersIndex();
             CreateClaimsIndex();
@@ -33,7 +33,6 @@ namespace Sanatana.MongoDb.Identity
         {
             IndexKeysDefinition<TUser> nameIndex = Builders<TUser>.IndexKeys
                .Ascending(p => p.UserName);
-
             CreateIndexOptions nameOptions = new CreateIndexOptions()
             {
                 Name = "UserName",
@@ -42,7 +41,6 @@ namespace Sanatana.MongoDb.Identity
 
             IndexKeysDefinition<TUser> emailIndex = Builders<TUser>.IndexKeys
                .Ascending(p => p.Email);
-
             CreateIndexOptions emailOptions = new CreateIndexOptions()
             {
                 Name = "Email",
@@ -50,17 +48,16 @@ namespace Sanatana.MongoDb.Identity
             };
 
             IMongoCollection<TUser> collection = Context.Users;
-            collection.Indexes.DropAllAsync().Wait();
+            collection.Indexes.DropAll();
 
-            string indexName = collection.Indexes.CreateOneAsync(nameIndex, nameOptions).Result;
-            string indexEmail = collection.Indexes.CreateOneAsync(emailIndex, emailOptions).Result;
+            string indexName = collection.Indexes.CreateOne(nameIndex, nameOptions);
+            string indexEmail = collection.Indexes.CreateOne(emailIndex, emailOptions);
         }
 
         public void CreateClaimsIndex()
         {
             IndexKeysDefinition<MongoDbUserClaim> userIdIndex = Builders<MongoDbUserClaim>.IndexKeys
                .Ascending(p => p.UserId);
-
             CreateIndexOptions userIdOptions = new CreateIndexOptions()
             {
                 Name = "UserId",
@@ -68,9 +65,9 @@ namespace Sanatana.MongoDb.Identity
             };
             
             IMongoCollection<MongoDbUserClaim> collection = Context.Claims;
-            collection.Indexes.DropAllAsync().Wait();
+            collection.Indexes.DropAll();
 
-            string indexName = collection.Indexes.CreateOneAsync(userIdIndex, userIdOptions).Result;
+            string indexName = collection.Indexes.CreateOne(userIdIndex, userIdOptions);
         }
 
         public void CreateUserLoginsIndex()
@@ -95,10 +92,10 @@ namespace Sanatana.MongoDb.Identity
             };
 
             IMongoCollection<MongoDbUserLogin> collection = Context.UserLogins;
-            collection.Indexes.DropAllAsync().Wait();
+            collection.Indexes.DropAll();
 
-            string loginIndexName = collection.Indexes.CreateOneAsync(userIdIndex, userIdOptions).Result;
-            string providerIndexName = collection.Indexes.CreateOneAsync(providerIndex, providerOptions).Result;
+            string loginIndexName = collection.Indexes.CreateOne(userIdIndex, userIdOptions);
+            string providerIndexName = collection.Indexes.CreateOne(providerIndex, providerOptions);
         }
     }
 }

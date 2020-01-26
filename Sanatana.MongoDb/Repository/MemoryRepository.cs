@@ -9,9 +9,9 @@ using System.Reflection;
 using System.Collections;
 using Sanatana.MongoDb.Repository.Memory;
 using System.IO;
-using System;
 using System.Runtime.Serialization.Formatters.Binary;
 using MongoDB.Bson.Serialization;
+using MongoDB.Bson;
 
 namespace Sanatana.MongoDb.Repository
 {
@@ -90,7 +90,15 @@ namespace Sanatana.MongoDb.Repository
             return Task.CompletedTask;
         }
 
-        public virtual Task<long> Count(Expression<Func<T, bool>> filterConditions, CancellationToken token = default)
+        public virtual Task<long> CountDocuments(Expression<Func<T, bool>> filterConditions, CancellationToken token = default)
+        {
+            long count = Collection
+                .Where(filterConditions.Compile())
+                .LongCount();
+            return Task.FromResult<long>(count);
+        }
+
+        public Task<long> EstimatedDocumentCount(CancellationToken token = default)
         {
             return Task.FromResult<long>(Collection.Count);
         }
@@ -148,6 +156,27 @@ namespace Sanatana.MongoDb.Repository
             return Task.FromResult(returnedEntity);
         }
 
+        public async Task<T> FindOneAndReplace(T entity, bool isUpsert, ReturnDocument returnDocument = ReturnDocument.Before, CancellationToken token = default)
+        {
+            Func<object, object> idGetter = FieldDefinitions.GetIdFieldGetter(typeof(T));
+            ObjectId entityId = (ObjectId)idGetter.Invoke(entity);
+            T collectionEntity = Collection
+                .Where(x => (ObjectId)idGetter.Invoke(x) == entityId)
+                .FirstOrDefault();
+
+            T returnedEntity = collectionEntity;
+            if (returnDocument == ReturnDocument.Before)
+            {
+                //Could clone it here if required with AutoMapper or BinarySerializer.
+                //However BinarySerializer does not serialize ObjectId.
+                returnedEntity = collectionEntity;
+            }
+
+            await ReplaceOne(entity, isUpsert, token);
+
+            return returnedEntity;
+        }
+
         public virtual Task<long> UpdateOne(Expression<Func<T, bool>> filterConditions, Updates<T> updates, CancellationToken token = default)
         {
             T entity = Collection.Where(x => filterConditions.Compile().Invoke(x)).FirstOrDefault();
@@ -167,21 +196,6 @@ namespace Sanatana.MongoDb.Repository
                 UpdateField(updates, entity, false);
             }
             return Task.FromResult<long>(entitiesToUpdate.Count);
-        }
-
-        public virtual Task<long> UpdateOne(T entity, CancellationToken token = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual Task<long> UpdateMany(IEnumerable<T> entities, CancellationToken token = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual Task<long> UpsertMany(IEnumerable<T> entities, CancellationToken token = default)
-        {
-            throw new NotImplementedException();
         }
 
         public virtual Task<long> DeleteMany(Expression<Func<T, bool>> filterConditions, CancellationToken token = default)
@@ -204,6 +218,35 @@ namespace Sanatana.MongoDb.Repository
             }
             long deletedCount = entity == null ? 0 : 1;
             return Task.FromResult<long>(deletedCount);
+        }
+
+        public Task<long> ReplaceOne(T entity, bool isUpsert, CancellationToken token = default)
+        {
+            Func<object, object> idGetter = FieldDefinitions.GetIdFieldGetter(typeof(T));
+            ObjectId entityId = (ObjectId)idGetter.Invoke(entity);
+
+            T entityToReplace = Collection.Find(x => (ObjectId)idGetter.Invoke(x) == entityId);
+
+            long replaced = 0;
+            bool doReplace = isUpsert || entityToReplace != null;
+            if (doReplace)
+            {
+                replaced = Collection.RemoveAll(x => (ObjectId)idGetter.Invoke(x) == entityId);
+                Collection.Add(entity);
+            }
+
+            return Task.FromResult(replaced);
+        }
+
+        public async Task<long> ReplaceMany(IEnumerable<T> entities, bool isUpsert, CancellationToken token = default)
+        {
+            long replaced = 0;
+            foreach (T item in entities)
+            {
+                replaced += await ReplaceOne(item, isUpsert);
+            }
+
+            return replaced;
         }
 
     }

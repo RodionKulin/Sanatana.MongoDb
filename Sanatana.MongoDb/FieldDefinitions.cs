@@ -37,5 +37,15 @@ namespace Sanatana.MongoDb
             return renderDefinition.FieldName;
         }
 
+        public static Func<object, object> GetIdFieldGetter(Type itemType)
+        {
+            BsonClassMap classMap = BsonClassMap.LookupClassMap(itemType);
+            Func<object, object> idGetter = classMap?.IdMemberMap?.Getter;
+            if (idGetter == null)
+            {
+                throw new NullReferenceException($"Getter for MongoDb _id field not found for type {itemType.Name}");
+            }
+            return idGetter;
+        }
     }
 }
