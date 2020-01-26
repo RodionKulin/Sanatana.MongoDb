@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Sanatana.MongoDb.Validators
+namespace Sanatana.MongoDb
 {
     public static class MongoDbPageNumbers
     {

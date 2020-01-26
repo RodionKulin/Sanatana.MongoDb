@@ -2,13 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-	  <Version>2.0.0</Version>
+	  <Version>2.0.1</Version>
     <Authors>Sanatana</Authors>
 	  <RepositoryUrl>https://github.com/RodionKulin/Sanatana.MongoDb</RepositoryUrl>
 	  <PackageLicenseUrl>https://github.com/RodionKulin/Sanatana.MongoDb/blob/master/LICENSE</PackageLicenseUrl>
 	  <PackageDescription>MongoDb repository and extensions</PackageDescription>
 	  <PackageTags>MongoDb;Repository;Extensions;</PackageTags>
-    <PackageReleaseNotes>Repository added</PackageReleaseNotes>
+    <PackageReleaseNotes></PackageReleaseNotes>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
   </PropertyGroup>
