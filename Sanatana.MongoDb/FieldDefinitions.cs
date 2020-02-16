@@ -29,8 +29,7 @@ namespace Sanatana.MongoDb
             return GetFieldMappedName<TDocument>(defin);
         }
 
-        public static string GetFieldMappedName<TDocument>(
-           FieldDefinition<TDocument> fieldDefinition)
+        public static string GetFieldMappedName<TDocument>(FieldDefinition<TDocument> fieldDefinition)
         {
             RenderedFieldDefinition renderDefinition = fieldDefinition.Render(
                 BsonSerializer.LookupSerializer<TDocument>(), BsonSerializer.SerializerRegistry);
