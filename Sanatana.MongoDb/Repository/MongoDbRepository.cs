@@ -10,7 +10,8 @@ using MongoDB.Bson;
 
 namespace Sanatana.MongoDb.Repository
 {
-    public class MongoDbRepository<T> : IRepository<T> where T : class
+    public class MongoDbRepository<T> : IRepository<T> 
+        where T : class
     {
         //fields
         protected IMongoCollection<T> _collection;
@@ -79,21 +80,48 @@ namespace Sanatana.MongoDb.Repository
             return _collection.InsertOneAsync(entity, options, cancellationToken: token);
         }
 
+        public virtual async Task<bool> InsertOneHandleDuplicate(T entity, CancellationToken token = default)
+        {
+            try
+            {
+                var options = new InsertOneOptions();
+                await _collection.InsertOneAsync(entity, options, cancellationToken: token).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                if (MongoDbExceptionInspector.IsDuplicateException(ex))
+                {
+                    return true;
+                };
+
+                ExceptionDispatchInfo.Capture(ex).Throw();
+            }
+
+            return false;
+        }
+
         public virtual Task InsertMany(IEnumerable<T> entities, CancellationToken token = default)
         {
             return _collection.InsertManyAsync(entities, cancellationToken: token);
         }
 
-        public virtual Task<long> CountDocuments(Expression<Func<T, bool>> filterConditions, CancellationToken token = default)
+        /// <summary>
+        /// Count and return the number of results that match a query.
+        /// Method without a query predicate the method returns results based on the collection’s metadata, which may result in an approximate count.
+        /// On a sharded cluster, the resulting count will not correctly filter out orphaned documents.
+        /// After an unclean shutdown, the count may be incorrect.
+        /// Run validate on each collection on the mongod to restore the correct statistics after an unclean shutdown.
+        /// </summary>
+        /// <param name="filterConditions"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public virtual Task<long> CountDocuments(Expression<Func<T, bool>> filterConditions = null, CancellationToken token = default)
         {
-            FilterDefinition<T> filter = ToFilter(filterConditions);
+            FilterDefinition<T> filter = filterConditions == null
+                ? ToFilter(x => true)
+                : ToFilter(filterConditions);
 
             return _collection.CountDocumentsAsync(filter, cancellationToken: token);
-        }
-
-        public virtual Task<long> EstimatedDocumentCount(CancellationToken token = default)
-        {
-            return _collection.EstimatedDocumentCountAsync(cancellationToken: token);
         }
 
         public virtual Task<T> FindOne(Expression<Func<T, bool>> filterConditions, CancellationToken token = default)
@@ -168,6 +196,15 @@ namespace Sanatana.MongoDb.Repository
             int skipItems = MongoDbPageNumbers.ToSkipNumber(pageIndex, pageSize);
             query = query.Skip(skipItems).Limit(pageSize);
 
+            return query.ToListAsync(cancellationToken: token);
+        }
+
+        public virtual Task<List<T>> FindAll(Expression<Func<T, bool>> filterConditions = null, CancellationToken token = default)
+        {
+            var options = new FindOptions();
+            var query = filterConditions == null
+                ? _collection.Find(x => true, options)
+                : _collection.Find(filterConditions, options);
             return query.ToListAsync(cancellationToken: token);
         }
 

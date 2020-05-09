@@ -18,10 +18,10 @@ namespace Sanatana.MongoDb
 {
     public static class IMongoDbCollectionExtensions
     {
-        //query analyze
+        //explain
         public static Task<BsonDocument> ExplainAggregation<TDocument, TResult>(
-            this IMongoCollection<TDocument> collection
-            , IAggregateFluent<TResult> aggregation, ExplainVerbosity verbosity)
+            this IMongoCollection<TDocument> collection,
+            IAggregateFluent<TResult> aggregation, ExplainVerbosity verbosity)
         {
             IBsonSerializerRegistry serializerRegistry = collection.Settings.SerializerRegistry;
             IBsonSerializer<TDocument> serializer = serializerRegistry.GetSerializer<TDocument>();
@@ -31,6 +31,32 @@ namespace Sanatana.MongoDb
             var renderedDefinition = pipeline.Render(serializer, serializerRegistry);
 
             var explainOperation = new AggregateOperation<TResult>(
+                collection.CollectionNamespace,
+                renderedDefinition.Documents,
+                renderedDefinition.OutputSerializer,
+                encoderSettings)
+                .ToExplainOperation(verbosity);
+
+            ICluster cluster = GetCluster(collection);
+            ICoreSessionHandle session = NoCoreSession.NewHandle();
+            using (IReadBinding binding = new ReadPreferenceBinding(cluster, collection.Settings.ReadPreference, session))
+            {
+                var cancelToken = new CancellationToken();
+                return explainOperation.ExecuteAsync(binding, cancelToken);
+            }
+        }
+
+        public static Task<BsonDocument> ExplainAggregation<TDocument, TResult>(
+            this IMongoCollection<TDocument> collection
+            , PipelineDefinition<TDocument, TResult> aggregationPipeline, ExplainVerbosity verbosity)
+        {
+            IBsonSerializerRegistry serializerRegistry = collection.Settings.SerializerRegistry;
+            IBsonSerializer<TDocument> serializer = serializerRegistry.GetSerializer<TDocument>();
+            MessageEncoderSettings encoderSettings = collection.GetMessageEncoderSettings();
+
+            RenderedPipelineDefinition<TResult> renderedDefinition = aggregationPipeline.Render(serializer, serializerRegistry);
+
+            IReadOperation<BsonDocument> explainOperation = new AggregateOperation<TResult>(
                 collection.CollectionNamespace,
                 renderedDefinition.Documents,
                 renderedDefinition.OutputSerializer,

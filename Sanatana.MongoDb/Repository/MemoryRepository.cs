@@ -90,17 +90,28 @@ namespace Sanatana.MongoDb.Repository
             return Task.CompletedTask;
         }
 
-        public virtual Task<long> CountDocuments(Expression<Func<T, bool>> filterConditions, CancellationToken token = default)
+        public virtual Task<bool> InsertOneHandleDuplicate(T entity, CancellationToken token = default)
         {
+            bool isDuplicate = Collection.Contains(entity);
+            if (!isDuplicate)
+            {
+                Collection.Add(entity);
+            };
+            return Task.FromResult(isDuplicate);
+
+        }
+
+        public virtual Task<long> CountDocuments(Expression<Func<T, bool>> filterConditions = null, CancellationToken token = default)
+        {
+            if(filterConditions == null)
+            {
+                filterConditions = x => true;
+            }
+
             long count = Collection
                 .Where(filterConditions.Compile())
                 .LongCount();
             return Task.FromResult<long>(count);
-        }
-
-        public Task<long> EstimatedDocumentCount(CancellationToken token = default)
-        {
-            return Task.FromResult<long>(Collection.Count);
         }
 
         public virtual Task<List<T>> FindMany(Expression<Func<T, bool>> filterConditions, int pageIndex, int pageSize, bool orderDescending = false, Expression<Func<T, object>> orderExpression = null, CancellationToken token = default)
@@ -124,6 +135,11 @@ namespace Sanatana.MongoDb.Repository
                 .Take(pageSize)
                 .ToList();
             return Task.FromResult(list);
+        }
+
+        public virtual Task<List<T>> FindAll(Expression<Func<T, bool>> filterConditions = null, CancellationToken token = default)
+        {
+            return Task.FromResult(Collection.ToList());
         }
 
         public virtual Task<T> FindOne(Expression<Func<T, bool>> filterConditions, CancellationToken token = default)

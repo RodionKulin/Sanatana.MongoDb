@@ -17,6 +17,8 @@ namespace Sanatana.MongoDbSpecs
     public class MongoDbRepositorySpecs
     {
         private IMongoCollection<Post> _collection;
+        private SamplesMongoDbContext _dbContext;
+
 
         //shared
         [OneTimeSetUp]
@@ -28,9 +30,10 @@ namespace Sanatana.MongoDbSpecs
                 Host = "localhost",
                 Port = 27017
             };
-            var dbContext = new SamplesMongoDbContext(connectionSettings);
-            _collection = dbContext.Posts;
+            _dbContext = new SamplesMongoDbContext(connectionSettings);
+            _collection = _dbContext.Posts;
             _collection.Database.DropCollection("Posts");
+            _dbContext.Database.DropCollection("UniqueEntities");
         }
 
         private IRepository<Post> GetRepositoryToTest(bool isMongoDbRepo)
@@ -40,6 +43,15 @@ namespace Sanatana.MongoDbSpecs
                 : new MemoryRepository<Post>();
         }
 
+        private IRepository<T> GetRepositoryToTest<T>(bool isMongoDbRepo, IMongoCollection<T> collection)
+            where T : class
+        {
+            return isMongoDbRepo
+                ? (IRepository<T>)new MongoDbRepository<T>(collection)
+                : new MemoryRepository<T>();
+        }
+
+
 
         //specs
         [Test]
@@ -47,10 +59,10 @@ namespace Sanatana.MongoDbSpecs
         [TestCase(false)]
         public async Task when_inserting_one_findone_returns_inserted_entity(bool isMongoDbRepo)
         {
-            //prepare
+            //arrange
             IRepository<Post> repository = GetRepositoryToTest(isMongoDbRepo);
 
-            //invoke
+            //act
             var newEntity = new Post
             {
                 ID = ObjectId.GenerateNewId(),
@@ -66,13 +78,39 @@ namespace Sanatana.MongoDbSpecs
 
         [Test]
         [TestCase(true)]
+        //[TestCase(false)]
+        public async Task when_inserting_one_duplicate_catched(bool isMongoDbRepo)
+        {
+            //arrange
+            IRepository<UniqueEntity> repository = GetRepositoryToTest<UniqueEntity>(isMongoDbRepo, _dbContext.UniqueEntities);
+
+            //act
+            var newEntity = new UniqueEntity
+            {
+                ID = ObjectId.GenerateNewId(),
+                UniqueValue = "I'm unique"
+            };
+            bool isDuplicate1 = await repository.InsertOneHandleDuplicate(newEntity);
+            newEntity.ID = ObjectId.GenerateNewId();
+            bool isDuplicate2 = await repository.InsertOneHandleDuplicate(newEntity);
+
+            //assert
+            var actualEntities = await repository.FindAll(x => x.UniqueValue == "I'm unique");
+            actualEntities.Should().HaveCount(1);
+
+            isDuplicate2.Should().BeFalse();
+            isDuplicate2.Should().BeTrue();
+        }
+
+        [Test]
+        [TestCase(true)]
         [TestCase(false)]
         public async Task when_inserting_many_findmany_returns_inserted_entity(bool isMongoDbRepo)
         {
-            //prepare
+            //arrange
             IRepository<Post> repository = GetRepositoryToTest(isMongoDbRepo);
 
-            //invoke
+            //act
             Post[] newEntities = Enumerable.Range(1, 2)
                 .Select(x => new Post
                 {
@@ -94,7 +132,7 @@ namespace Sanatana.MongoDbSpecs
         [TestCase(false)]
         public async Task when_deleting_one_findone_returns_nothing(bool isMongoDbRepo)
         {
-            //prepare
+            //arrange
             IRepository<Post> repository = GetRepositoryToTest(isMongoDbRepo);
             var newEntity = new Post
             {
@@ -104,7 +142,7 @@ namespace Sanatana.MongoDbSpecs
             };
             await repository.InsertOne(newEntity);
 
-            //invoke
+            //act
             long deletedCount = await repository.DeleteOne(x => x.ID == newEntity.ID);
 
             //assert
@@ -119,7 +157,7 @@ namespace Sanatana.MongoDbSpecs
         [TestCase(false)]
         public async Task when_deleting_many_findmany_returns_nothing(bool isMongoDbRepo)
         {
-            //prepare
+            //arrange
             IRepository<Post> repository = GetRepositoryToTest(isMongoDbRepo);
             Post[] newEntities = Enumerable.Range(1, 2)
                 .Select(x => new Post
@@ -131,7 +169,7 @@ namespace Sanatana.MongoDbSpecs
                 .ToArray();
             await repository.InsertMany(newEntities);
 
-            //invoke
+            //act
             ObjectId[] ids = newEntities.Select(x => x.ID).ToArray();
             long deletedCount = await repository.DeleteMany(x => ids.Contains(x.ID));
 
@@ -147,7 +185,7 @@ namespace Sanatana.MongoDbSpecs
         [TestCase(false)]
         public async Task when_findoneanddeleting_then_findone_returns_nothing(bool isMongoDbRepo)
         {
-            //prepare
+            //arrange
             IRepository<Post> repository = GetRepositoryToTest(isMongoDbRepo);
             var newEntity = new Post
             {
@@ -157,7 +195,7 @@ namespace Sanatana.MongoDbSpecs
             };
             await repository.InsertOne(newEntity);
 
-            //invoke
+            //act
             Post deletedEntity = await repository.FindOneAndDelete(x => x.ID == newEntity.ID);
 
             //assert
@@ -171,7 +209,7 @@ namespace Sanatana.MongoDbSpecs
         [TestCase(true)]
         public async Task when_findoneandupdating_then_findone_returns_updated(bool isMongoDbRepo)
         {
-            //prepare
+            //arrange
             IRepository<Post> repository = GetRepositoryToTest(isMongoDbRepo);
             var newEntity = new Post
             {
@@ -181,7 +219,7 @@ namespace Sanatana.MongoDbSpecs
             };
             await repository.InsertOne(newEntity);
 
-            //invoke
+            //act
             var updates = Updates<Post>.Empty().Set(x => x.Text, "updated");
             Post updatedEntity = await repository.FindOneAndUpdate(x => x.ID == newEntity.ID, updates);
 
@@ -198,7 +236,7 @@ namespace Sanatana.MongoDbSpecs
         [TestCase(false)]
         public async Task when_findoneandreplacing_then_findone_returns_updated(bool isMongoDbRepo)
         {
-            //prepare
+            //arrange
             IRepository<Post> repository = GetRepositoryToTest(isMongoDbRepo);
             var newEntity = new Post
             {
@@ -208,7 +246,7 @@ namespace Sanatana.MongoDbSpecs
             };
             await repository.InsertOne(newEntity);
 
-            //invoke
+            //act
             var replacementEntity = new Post
             {
                 ID = newEntity.ID,
@@ -232,7 +270,7 @@ namespace Sanatana.MongoDbSpecs
         [TestCase(true)]
         public async Task when_findoneandreplacing_with_upsert_then_findone_returns_updated(bool isMongoDbRepo)
         {
-            //prepare
+            //arrange
             IRepository<Post> repository = GetRepositoryToTest(isMongoDbRepo);
             var newEntity = new Post
             {
@@ -242,7 +280,7 @@ namespace Sanatana.MongoDbSpecs
             };
             await repository.InsertOne(newEntity);
 
-            //invoke
+            //act
             var replacementEntity = new Post
             {
                 ID = newEntity.ID,
@@ -265,7 +303,7 @@ namespace Sanatana.MongoDbSpecs
         [TestCase(false)]
         public async Task when_updating_many_with_push_then_findmany_returns_updated_results(bool isMongoDbRepo)
         {
-            //prepare
+            //arrange
             IRepository<Post> repository = GetRepositoryToTest(isMongoDbRepo);
             Post[] newEntities = Enumerable.Range(1, 2)
                 .Select(x => new Post
@@ -278,7 +316,7 @@ namespace Sanatana.MongoDbSpecs
                 .ToArray();
             await repository.InsertMany(newEntities);
 
-            //invoke
+            //act
             ObjectId[] ids = newEntities.Select(x => x.ID).ToArray();
             var updates = Updates<Post>.Empty()
                 .Set(x => x.Text, "updated")
@@ -304,7 +342,7 @@ namespace Sanatana.MongoDbSpecs
         [TestCase(false)]
         public async Task when_updating_many_with_pull_then_findmany_returns_updated_results(bool isMongoDbRepo)
         {
-            //prepare
+            //arrange
             IRepository<Post> repository = GetRepositoryToTest(isMongoDbRepo);
             Post[] newEntities = Enumerable.Range(1, 2)
                 .Select(x => new Post
@@ -317,7 +355,7 @@ namespace Sanatana.MongoDbSpecs
                 .ToArray();
             await repository.InsertMany(newEntities);
 
-            //invoke
+            //act
             ObjectId[] ids = newEntities.Select(x => x.ID).ToArray();
             var updates = Updates<Post>.Empty()
                 .Set(x => x.Text, "updated")
@@ -341,7 +379,7 @@ namespace Sanatana.MongoDbSpecs
         [Test]
         public async Task when_upserting_many_findmany_returns_upserted_results()
         {
-            //prepare
+            //arrange
             IRepository<Post> repository = new MongoDbRepository<Post>(_collection);
             List<Post> newEntities = Enumerable.Range(1, 3)
                 .Select(x => new Post
@@ -354,7 +392,7 @@ namespace Sanatana.MongoDbSpecs
             await repository.InsertOne(newEntities.First());
             newEntities.ForEach(x => x.Text = "upsert many");
 
-            //invoke
+            //act
             long upsertedCount = await repository.ReplaceMany(newEntities, true);
 
             //assert
@@ -373,7 +411,7 @@ namespace Sanatana.MongoDbSpecs
         [Test]
         public async Task when_updating_many_then_findmany_returns_updated_results()
         {
-            //prepare
+            //arrange
             IRepository<Post> repository = new MongoDbRepository<Post>(_collection);
             List<Post> newEntities = Enumerable.Range(1, 3)
                 .Select(x => new Post
@@ -386,7 +424,7 @@ namespace Sanatana.MongoDbSpecs
             await repository.InsertMany(newEntities);
             newEntities.ForEach(x => x.Text = "update many");
 
-            //invoke
+            //act
             long upsertedCount = await repository.ReplaceMany(newEntities, true);
 
             //assert

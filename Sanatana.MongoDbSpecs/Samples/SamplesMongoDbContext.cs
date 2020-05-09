@@ -28,6 +28,13 @@ namespace Sanatana.MongoDbSpecs.Samples
                 return Database.GetCollection<Post>("Posts");
             }
         }
+        public IMongoCollection<UniqueEntity> UniqueEntities
+        {
+            get
+            {
+                return Database.GetCollection<UniqueEntity>("UniqueEntities");
+            }
+        }
 
         //init
         public SamplesMongoDbContext(MongoDbConnectionSettings connectionSettings)
@@ -45,6 +52,7 @@ namespace Sanatana.MongoDbSpecs.Samples
                         RegisterConventions();
                         MapSampleEntities();
                         ApplyGlobalSerializationSettings();
+                        CreateIndex();
                     }
                 }
             }
@@ -91,7 +99,7 @@ namespace Sanatana.MongoDbSpecs.Samples
             pack.Add(new IgnoreIfDefaultConvention(false));
 
             Assembly entitiesAssembly = typeof(Post).GetTypeInfo().Assembly;
-            ConventionRegistry.Register("ParsingTargets pack", pack,
+            ConventionRegistry.Register("MongoDbSpecs pack", pack,
                 t => t.GetTypeInfo().Assembly == entitiesAssembly);
         }
 
@@ -105,5 +113,17 @@ namespace Sanatana.MongoDbSpecs.Samples
 
         }
 
+        private void CreateIndex()
+        {
+            IndexKeysDefinition<UniqueEntity> indexKeys = Builders<UniqueEntity>.IndexKeys
+                  .Ascending(p => p.UniqueValue);
+
+            UniqueEntities.Database.DropCollection("UniqueEntities");
+            UniqueEntities.Indexes
+                .CreateOne(new CreateIndexModel<UniqueEntity>(indexKeys, new CreateIndexOptions<UniqueEntity>
+                {
+                    Unique = true,
+                }));
+        }
     }
 }

@@ -10,7 +10,13 @@ namespace Sanatana.MongoDb.Extensions
     public static class FilterDefinitionExtensions
     {
         //methods
-        public static string ToJson<TDocument>(this FilterDefinition<TDocument> filter)
+        /// <summary>
+        /// Create json string from filter definition
+        /// </summary>
+        /// <typeparam name="TDocument"></typeparam>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        public static string RenderJson<TDocument>(this FilterDefinition<TDocument> filter)
         {
             var serializerRegistry = BsonSerializer.SerializerRegistry;
             var documentSerializer = serializerRegistry.GetSerializer<TDocument>();
